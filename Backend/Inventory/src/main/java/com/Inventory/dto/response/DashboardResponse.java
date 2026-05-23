@@ -1,0 +1,16 @@
+package com.Inventory.dto.response;
+
+import lombok.*;
+import java.util.List;
+import java.util.Map;
+
+@Getter @Setter @Builder
+@NoArgsConstructor @AllArgsConstructor
+public class DashboardResponse {
+    private long totalProducts;
+    private long lowStockProducts;
+    private long totalSuppliers;
+    private long totalMovementsToday;
+    private List<MovementResponse> recentMovements;
+    private Map<String, Long> movementsByType;
+}

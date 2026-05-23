@@ -1,0 +1,5 @@
+package com.Inventory.dto.response;
+
+public class AuthResponse {
+
+}

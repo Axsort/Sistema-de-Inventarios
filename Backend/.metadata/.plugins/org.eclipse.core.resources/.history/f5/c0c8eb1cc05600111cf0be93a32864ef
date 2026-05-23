@@ -1,0 +1,37 @@
+package com.inventory.controller;
+
+import com.Inventory.dto.request.MovementRequest;
+import com.Inventory.dto.response.*;
+import com.Inventory.enums.MovementType;
+import com.Inventory.service.InventoryMovementService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/inventory-movements")
+@RequiredArgsConstructor
+public class InventoryMovementController {
+
+    private final InventoryMovementService movementService;
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<MovementResponse>>> findAll(
+            @RequestParam(required = false) Long productId,
+            @RequestParam(required = false) MovementType type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(
+            ApiResponse.success(movementService.findAll(productId, type, page, size)));
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<MovementResponse>> register(
+            @Valid @RequestBody MovementRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Movimiento registrado",
+                        movementService.register(request)));
+    }
+}

@@ -1,0 +1,5 @@
+package com.Inventory.mapper;
+
+public class SupplierMapper {
+
+}

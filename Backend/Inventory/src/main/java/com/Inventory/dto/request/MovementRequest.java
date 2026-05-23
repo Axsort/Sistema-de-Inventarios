@@ -1,0 +1,24 @@
+package com.Inventory.dto.request;
+
+import com.Inventory.enums.MovementType;
+import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter @Setter
+public class MovementRequest {
+
+    @NotNull(message = "El producto es obligatorio")
+    private Long productId;
+
+    @NotNull(message = "El tipo de movimiento es obligatorio")
+    private MovementType type;
+
+    @NotNull(message = "La cantidad es obligatoria")
+    @Min(value = 1, message = "La cantidad debe ser al menos 1")
+    private Integer quantity;
+
+    @NotBlank(message = "El motivo es obligatorio")
+    @Size(max = 255)
+    private String reason;
+}

@@ -1,0 +1,53 @@
+package com.Inventory.service;
+
+import com.Inventory.dto.response.DashboardResponse;
+import com.Inventory.mapper.MovementMapper;
+import com.Inventory.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class DashboardService {
+
+    private final ProductRepository productRepository;
+    private final SupplierRepository supplierRepository;
+    private final InventoryMovementRepository movementRepository;
+    private final MovementMapper movementMapper;
+
+    public DashboardResponse getSummary() {
+        LocalDateTime todayStart = LocalDateTime.now().toLocalDate().atStartOfDay();
+
+        Map<String, Long> movementsByType = new HashMap<>();
+        movementRepository.countByTypeAfter(
+            LocalDateTime.now().minusDays(30))
+            .forEach(row -> movementsByType.put(
+                row[0].toString(), (Long) row[1]));
+
+        return DashboardResponse.builder()
+                .totalProducts(productRepository.countByActiveTrue())
+                .lowStockProducts(productRepository.countLowStockProducts())
+                .totalSuppliers(supplierRepository.countByActiveTrue())
+                .totalMovementsToday(countTodayMovements(todayStart))
+                .recentMovements(movementRepository
+                        .findTop10ByOrderByCreatedAtDesc()
+                        .stream()
+                        .map(movementMapper::toResponse)
+                        .toList())
+                .movementsByType(movementsByType)
+                .build();
+    }
+
+    private long countTodayMovements(LocalDateTime since) {
+        return movementRepository.countByTypeAfter(since)
+                .stream()
+                .mapToLong(row -> (Long) row[1])
+                .sum();
+    }
+}

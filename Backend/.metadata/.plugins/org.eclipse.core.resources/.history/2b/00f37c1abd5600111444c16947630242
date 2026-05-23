@@ -1,0 +1,9 @@
+package com.inventory.exception;
+
+public class InsufficientStockException extends RuntimeException {
+    public InsufficientStockException(String productName, int current, int requested) {
+        super(String.format(
+            "Stock insuficiente para '%s'. Stock actual: %d, solicitado: %d",
+            productName, current, requested));
+    }
+}

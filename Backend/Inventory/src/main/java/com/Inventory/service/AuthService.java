@@ -1,0 +1,42 @@
+package com.Inventory.service;
+
+import com.Inventory.dto.request.LoginRequest;
+import com.Inventory.dto.response.AuthResponse;
+import com.Inventory.entity.User;
+import com.Inventory.repository.UserRepository;
+import com.Inventory.security.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.*;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final AuthenticationManager authManager;
+    private final JwtTokenProvider tokenProvider;
+    private final UserRepository userRepository;
+
+    public AuthResponse login(LoginRequest request) {
+    	authManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(), request.getPassword()));
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow();
+
+        String token = tokenProvider.generateToken(
+                user.getEmail(),
+                user.getRole().getName().name(),
+                user.getId());
+
+        return AuthResponse.builder()
+                .token(token)
+                .type("Bearer")
+                .userId(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .role(user.getRole().getName().name())
+                .build();
+    }
+}

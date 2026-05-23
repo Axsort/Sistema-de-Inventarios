@@ -1,0 +1,5 @@
+package com.Inventory.repository;
+
+public class SupplierRepository {
+
+}

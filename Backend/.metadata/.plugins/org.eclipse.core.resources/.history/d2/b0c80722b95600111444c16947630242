@@ -1,0 +1,5 @@
+package com.Inventory.dto.request;
+
+public class LoginRequest {
+
+}

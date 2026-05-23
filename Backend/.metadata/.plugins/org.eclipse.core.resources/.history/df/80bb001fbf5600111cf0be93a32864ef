@@ -1,0 +1,73 @@
+package com.inventory.service;
+
+import com.inventory.dto.request.CategoryRequest;
+import com.inventory.dto.response.CategoryResponse;
+import com.inventory.entity.Category;
+import com.inventory.exception.*;
+import com.inventory.mapper.CategoryMapper;
+import com.inventory.repository.CategoryRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class CategoryService {
+
+    private final CategoryRepository categoryRepository;
+    private final CategoryMapper categoryMapper;
+
+    public List<CategoryResponse> findAll() {
+        return categoryRepository.findAll()
+                .stream()
+                .map(categoryMapper::toResponse)
+                .toList();
+    }
+
+    public List<CategoryResponse> findAllActive() {
+        return categoryRepository.findByActiveTrue()
+                .stream()
+                .map(categoryMapper::toResponse)
+                .toList();
+    }
+
+    public CategoryResponse findById(Long id) {
+        return categoryMapper.toResponse(getOrThrow(id));
+    }
+
+    @Transactional
+    public CategoryResponse create(CategoryRequest request) {
+        if (categoryRepository.existsByNameIgnoreCase(request.getName())) {
+            throw new DuplicateResourceException(
+                "Ya existe una categoría con el nombre: " + request.getName());
+        }
+        Category category = categoryMapper.toEntity(request);
+        return categoryMapper.toResponse(categoryRepository.save(category));
+    }
+
+    @Transactional
+    public CategoryResponse update(Long id, CategoryRequest request) {
+        Category category = getOrThrow(id);
+        if (categoryRepository.existsByNameIgnoreCaseAndIdNot(request.getName(), id)) {
+            throw new DuplicateResourceException(
+                "Ya existe una categoría con el nombre: " + request.getName());
+        }
+        categoryMapper.updateEntity(request, category);
+        return categoryMapper.toResponse(categoryRepository.save(category));
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Category category = getOrThrow(id);
+        category.setActive(false);
+        categoryRepository.save(category);
+    }
+
+    private Category getOrThrow(Long id) {
+        return categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Categoría", id));
+    }
+}

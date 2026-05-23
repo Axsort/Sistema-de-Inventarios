@@ -1,0 +1,91 @@
+package com.Inventory.service;
+
+import com.Inventory.dto.request.MovementRequest;
+import com.Inventory.dto.response.MovementResponse;
+import com.Inventory.entity.*;
+import com.Inventory.enums.MovementType;
+import com.Inventory.exception.*;
+import com.Inventory.mapper.MovementMapper;
+import com.Inventory.repository.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class InventoryMovementService {
+
+    private final InventoryMovementRepository movementRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository;
+    private final ProductService productService;
+    private final MovementMapper movementMapper;
+
+    public Page<MovementResponse> findAll(Long productId, MovementType type,
+                                           int page, int size) {
+        Pageable pageable = PageRequest.of(page, size,
+                Sort.by("createdAt").descending());
+        return movementRepository.findByFilters(productId, type, pageable)
+                .map(movementMapper::toResponse);
+    }
+
+    public List<MovementResponse> findRecent() {
+        return movementRepository.findTop10ByOrderByCreatedAtDesc()
+                .stream()
+                .map(movementMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public MovementResponse register(MovementRequest request) {
+        Product product = productService.getOrThrow(request.getProductId());
+
+        if (!product.getActive()) {
+            throw new BusinessException(
+                "No se pueden registrar movimientos para un producto inactivo");
+        }
+
+        applyStockChange(product, request.getType(), request.getQuantity());
+
+        String email = SecurityContextHolder.getContext()
+                .getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("Usuario no encontrado"));
+
+        InventoryMovement movement = InventoryMovement.builder()
+                .product(product)
+                .type(request.getType())
+                .quantity(request.getQuantity())
+                .reason(request.getReason())
+                .user(user)
+                .build();
+
+        productRepository.save(product);
+        return movementMapper.toResponse(movementRepository.save(movement));
+    }
+
+    private void applyStockChange(Product product, MovementType type, int quantity) {
+        switch (type) {
+            case ENTRY -> product.setStock(product.getStock() + quantity);
+            case EXIT -> {
+                if (product.getStock() < quantity) {
+                    throw new InsufficientStockException(
+                        product.getName(), product.getStock(), quantity);
+                }
+                product.setStock(product.getStock() - quantity);
+            }
+            case ADJUSTMENT -> {
+                if (quantity < 0) {
+                    throw new BusinessException(
+                        "Para ajustes use una cantidad positiva que represente el nuevo stock total");
+                }
+                product.setStock(quantity);
+            }
+        }
+    }
+}

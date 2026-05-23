@@ -1,0 +1,56 @@
+package com.inventory.service;
+
+import com.inventory.dto.request.SupplierRequest;
+import com.inventory.dto.response.SupplierResponse;
+import com.inventory.entity.Supplier;
+import com.inventory.exception.ResourceNotFoundException;
+import com.inventory.mapper.SupplierMapper;
+import com.inventory.repository.SupplierRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class SupplierService {
+
+    private final SupplierRepository supplierRepository;
+    private final SupplierMapper supplierMapper;
+
+    public Page<SupplierResponse> findAll(String search, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+        return supplierRepository.findByFilters(search, pageable)
+                .map(supplierMapper::toResponse);
+    }
+
+    public SupplierResponse findById(Long id) {
+        return supplierMapper.toResponse(getOrThrow(id));
+    }
+
+    @Transactional
+    public SupplierResponse create(SupplierRequest request) {
+        Supplier supplier = supplierMapper.toEntity(request);
+        return supplierMapper.toResponse(supplierRepository.save(supplier));
+    }
+
+    @Transactional
+    public SupplierResponse update(Long id, SupplierRequest request) {
+        Supplier supplier = getOrThrow(id);
+        supplierMapper.updateEntity(request, supplier);
+        return supplierMapper.toResponse(supplierRepository.save(supplier));
+    }
+
+    @Transactional
+    public void toggleStatus(Long id) {
+        Supplier supplier = getOrThrow(id);
+        supplier.setActive(!supplier.getActive());
+        supplierRepository.save(supplier);
+    }
+
+    private Supplier getOrThrow(Long id) {
+        return supplierRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Proveedor", id));
+    }
+}
