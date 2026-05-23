@@ -24,7 +24,7 @@ export default function LoginPage() {
   const { setUser } = useAuthStore()
   const navigate = useNavigate()
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   })
 
@@ -40,6 +40,11 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fillDemo = () => {
+    setValue('email', 'admin@inventory.com')
+    setValue('password', 'admin123')
   }
 
   return (
@@ -121,9 +126,37 @@ export default function LoginPage() {
             </Button>
           </Box>
 
-          <Typography variant="caption" color="text.secondary" display="block" textAlign="center" mt={3}>
-            admin@inventory.com / admin123
-          </Typography>
+          {/* Demo box */}
+          <Box
+            sx={{
+              mt: 3,
+              p: 1.5,
+              bgcolor: 'grey.100',
+              borderRadius: 2,
+              border: '1px dashed',
+              borderColor: 'grey.300',
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" display="block" textAlign="center" fontWeight={600}>
+              🔑 Credenciales de demo
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" textAlign="center">
+              Email: <strong>admin@inventory.com</strong>
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" textAlign="center">
+              Contraseña: <strong>admin123</strong>
+            </Typography>
+            <Button
+              variant="outlined"
+              fullWidth
+              size="small"
+              onClick={fillDemo}
+              sx={{ mt: 1.5, textTransform: 'none', borderStyle: 'dashed' }}
+            >
+              Entrar como demo
+            </Button>
+          </Box>
+
         </CardContent>
       </Card>
     </Box>

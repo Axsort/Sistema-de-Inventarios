@@ -28,27 +28,45 @@ const ok = (data: any) => ({ data: { success: true, data, timestamp: new Date().
 export function applyMocks(api: AxiosInstance) {
   api.interceptors.request.use(async (config) => {
     const url = config.url ?? ''
-    const method = (config.method ?? 'get').toLowerCase()
 
     let data: any = undefined
+    let unauthorized = false
 
-    if (url.includes('/auth/login'))         data = { token: 'mock-token', name: 'Admin Local', role: 'ADMIN', id: 1, email: 'admin@test.com' }
-    else if (url.includes('/products/low-stock')) data = mockProducts.filter(p => p.lowStock)
-    else if (url.match(/\/products\/\d+/))   data = mockProducts[0]
-    else if (url.includes('/products'))      data = page(mockProducts)
-    else if (url.match(/\/categories\/\d+/)) data = mockCategory
-    else if (url.includes('/categories'))    data = page([mockCategory])
-    else if (url.match(/\/suppliers\/\d+/))  data = mockSupplier
-    else if (url.includes('/suppliers'))     data = page([mockSupplier])
-    else if (url.includes('/movements'))     data = page(mockMovements)
-    else if (url.includes('/users'))         data = page(mockUsers)
-    else if (url.includes('/dashboard'))     data = { totalProducts: 3, totalCategories: 1, totalSuppliers: 1, lowStockCount: 1, recentMovements: mockMovements }
+    if (url.includes('/auth/login')) {
+        console.log('LOGIN DATA:', config.data, typeof config.data)
+      const body = typeof config.data === 'string' ? JSON.parse(config.data) : config.data
+      if (body.email === 'admin@inventory.com' && body.password === 'admin123') {
+        data = { token: 'mock-token', id: 1, name: 'Admin Local', email: body.email, role: 'ADMIN' }
+      } else {
+        unauthorized = true
+      }
+    } else if (url.includes('/products/low-stock')) {
+  data = mockProducts.filter(p => p.lowStock)
+} else if (url.match(/\/products\/\d+/)) {
+  data = mockProducts[0]
+} else if (url.includes('/products')) {
+  data = page(mockProducts)                        // ← products SÍ usa PageResponse
+} else if (url.match(/\/categories\/\d+/)) {
+  data = mockCategory
+} else if (url.includes('/categories/active')) {
+  data = [mockCategory]                            // ← array directo
+} else if (url.includes('/categories')) {
+  data = [mockCategory]                            // ← array directo
+} else if (url.match(/\/suppliers\/\d+/)) {
+  data = mockSupplier
+} else if (url.includes('/suppliers')) {
+  data = page([mockSupplier])                      // ← revisar supplierService
+} else if (url.includes('/movements')) {
+  data = page(mockMovements)                       // ← revisar movementService
+} else if (url.includes('/users')) {
+  data = page(mockUsers)                           // ← revisar userService
+} else if (url.includes('/dashboard')) {
+  data = { totalProducts: 3, totalCategories: 1, totalSuppliers: 1, lowStockCount: 1, recentMovements: mockMovements }
+}
 
-    if (data !== undefined) {
-      // Cancela la petición real y retorna mock
-      const controller = new AbortController()
-      controller.abort()
-      config.signal = controller.signal
+    if (unauthorized) {
+      config.adapter = async () => Promise.reject({ response: { status: 401, data: { message: 'Credenciales incorrectas' } } })
+    } else if (data !== undefined) {
       config.adapter = async () => ({ data: ok(data).data, status: 200, statusText: 'OK', headers: {}, config })
     }
 
